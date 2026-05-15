@@ -84,9 +84,16 @@ def find_optimal_threshold(
     if method == "youden":
         fpr, tpr, thresholds = roc_curve(y_true, y_proba)
         j = tpr - fpr
-        idx = int(np.argmax(j))
-        thr = float(thresholds[idx])
-        if not np.isfinite(thr):
+        # For degenerate cases (e.g. KNN with discrete probabilities and a
+        # perfectly separable training fold) many thresholds share the same J.
+        # Picking the first via argmax biases toward 1.0; instead, pick the
+        # threshold closest to 0.5 among all that reach max J, after dropping
+        # the +inf sentinel sklearn returns at index 0.
+        finite = np.isfinite(thresholds) & (j == j.max())
+        if finite.any():
+            cands = thresholds[finite]
+            thr = float(cands[np.argmin(np.abs(cands - 0.5))])
+        else:
             thr = 0.5
         return thr
 
