@@ -14,7 +14,7 @@ patches:
   hu_low: -1000
   hu_high: 400
   positive_per_scan: null
-  negative_to_positive_ratio: 0.2
+  negative_to_positive_ratio: 3.0
 
 cv:
   n_splits: 5

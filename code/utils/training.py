@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
-from sklearn.model_selection import GridSearchCV, StratifiedKFold
+from sklearn.model_selection import GridSearchCV, GroupKFold, StratifiedKFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
@@ -31,6 +31,7 @@ class FoldResult:
     metrics_calibrated: Dict[str, float] = field(default_factory=dict)
     best_params: Dict[str, Any] = field(default_factory=dict)
     train_history: Optional[Dict[str, List[float]]] = None
+    test_indices: List[int] = field(default_factory=list)
 
 
 def save_fold_results(results: List[FoldResult], path: Path | str) -> None:
@@ -59,6 +60,7 @@ def train_classical_cv(
     scoring: str = "roc_auc",
     seed: int = 42,
     pipeline_steps: Optional[Sequence[Tuple[str, Any]]] = None,
+    groups: Optional[Sequence] = None,
     verbose: bool = False,
 ) -> List[FoldResult]:
     """5-fold outer CV with nested grid search and threshold calibration.
@@ -68,6 +70,8 @@ def train_classical_cv(
     2. Inner GridSearchCV with `inner_splits` and `scoring`.
     3. Calibrate decision threshold on training predictions via Youden's J.
     4. Score test fold with both the default 0.5 threshold and the calibrated one.
+
+    When `groups` is provided, the outer split is `GroupKFold` (no two folds share a group).
     """
     X = np.asarray(X)
     y = np.asarray(y).astype(int)
@@ -75,10 +79,19 @@ def train_classical_cv(
     if pipeline_steps is None:
         pipeline_steps = [("scaler", StandardScaler())]
 
-    outer = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=seed)
+    if groups is not None:
+        groups_arr = np.asarray(groups)
+        outer_iter = GroupKFold(n_splits=n_splits).split(X, y, groups_arr)
+    else:
+        groups_arr = None
+        outer_iter = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=seed).split(X, y)
     results: List[FoldResult] = []
 
-    for fold_idx, (tr, te) in enumerate(outer.split(X, y)):
+    for fold_idx, (tr, te) in enumerate(outer_iter):
+        if groups_arr is not None:
+            assert set(groups_arr[tr]).isdisjoint(set(groups_arr[te])), (
+                f"leakage: fold {fold_idx} shares groups between train and test"
+            )
         if verbose:
             print(f"[fold {fold_idx}] train={len(tr)} test={len(te)}")
 
@@ -111,6 +124,7 @@ def train_classical_cv(
                 metrics_default=metrics_default,
                 metrics_calibrated=metrics_cal,
                 best_params=best_params,
+                test_indices=te.tolist(),
             )
         )
 
@@ -155,6 +169,7 @@ def train_dl_cv(
     device: str = "auto",
     augment_train: Optional[Callable] = None,
     augment_eval: Optional[Callable] = None,
+    groups: Optional[Sequence] = None,
     verbose: bool = True,
 ) -> List[FoldResult]:
     """5-fold CV training loop for a binary CNN classifier.
@@ -162,6 +177,8 @@ def train_dl_cv(
     `dataset` must be a torch Dataset that returns (image, label) and accept an
     optional `transform` attribute. We swap transforms between train and eval
     folds via shallow copies.
+
+    When `groups` is provided, the outer split is `GroupKFold` (no two folds share a group).
     """
     import torch
     from sklearn.metrics import roc_auc_score
@@ -177,12 +194,21 @@ def train_dl_cv(
     if dev.type == "cpu":
         num_workers = 0
 
-    outer = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=seed)
-    results: List[FoldResult] = []
-
     indices = np.arange(len(labels))
 
-    for fold_idx, (tr, te) in enumerate(outer.split(indices, labels)):
+    if groups is not None:
+        groups_arr = np.asarray(groups)
+        outer_iter = GroupKFold(n_splits=n_splits).split(indices, labels, groups_arr)
+    else:
+        groups_arr = None
+        outer_iter = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=seed).split(indices, labels)
+    results: List[FoldResult] = []
+
+    for fold_idx, (tr, te) in enumerate(outer_iter):
+        if groups_arr is not None:
+            assert set(groups_arr[tr]).isdisjoint(set(groups_arr[te])), (
+                f"leakage: fold {fold_idx} shares groups between train and test"
+            )
         if verbose:
             print(
                 f"[fold {fold_idx}] train={len(tr)} test={len(te)} "
@@ -328,6 +354,7 @@ def train_dl_cv(
                     "epochs_completed": len(history["loss"]),
                 },
                 train_history=history,
+                test_indices=te.tolist(),
             )
         )
 
