@@ -49,6 +49,13 @@ def subset_lung_binary(df: pd.DataFrame) -> pd.DataFrame:
     return df[df["tissue"] == "lung"].reset_index(drop=True)
 
 
+def subset_lung_subtype(df: pd.DataFrame) -> pd.DataFrame:
+    """Lung carcinoma subtype task: lung_aca (1) vs lung_scc (0). Excludes lung_n."""
+    sub = df[df["class"].isin(["lung_aca", "lung_scc"])].copy()
+    sub["label_binary"] = (sub["class"] == "lung_aca").astype(int)
+    return sub.reset_index(drop=True)
+
+
 def stratified_subsample(df: pd.DataFrame, per_class: int, seed: int = 42) -> pd.DataFrame:
     """Optional balanced subsample to keep runtimes manageable."""
     return (

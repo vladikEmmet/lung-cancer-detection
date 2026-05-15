@@ -1,0 +1,6 @@
+,SVM,RF,KNN,ResNet50_pretrained,ResNet50_scratch
+SVM,1.0,1.0,1.0,1.0,0.125
+RF,1.0,1.0,1.0,1.0,0.125
+KNN,1.0,1.0,1.0,1.0,0.125
+ResNet50_pretrained,1.0,1.0,1.0,1.0,0.125
+ResNet50_scratch,0.125,0.125,0.125,0.125,1.0
