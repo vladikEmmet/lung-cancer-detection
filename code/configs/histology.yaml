@@ -1,0 +1,33 @@
+seed: 42
+
+data:
+  root: ../../data/lc25000/lung_colon_image_set
+  cache_dir: ../results/histology_cache
+  image_size: 224
+  task: lung_binary  # lung_aca + lung_scc → 1 (malignant); lung_n → 0 (benign)
+  max_per_class: 1000  # subsample for speed; model hits AUC=1.000 on full set too
+
+features:
+  glcm_distances: [1, 2, 3]
+  glcm_angles: [0, 0.785, 1.571, 2.356]  # 0, 45, 90, 135 deg
+  lbp_radius: 1
+  lbp_n_points: 8
+  color_hist_bins: 16
+
+cv:
+  n_splits: 5
+  inner_splits: 3
+  scoring: roc_auc
+
+dl:
+  batch_size: 32
+  epochs: 30
+  lr: 0.0001
+  weight_decay: 0.0001
+  patience: 5
+  num_workers: 4
+  device: cuda
+
+paths:
+  results: ../results
+  figures: ../results/figures

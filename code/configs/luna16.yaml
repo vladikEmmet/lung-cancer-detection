@@ -1,0 +1,35 @@
+seed: 42
+
+data:
+  root: ../../data/luna16
+  annotations_csv: ${data.root}/annotations.csv
+  candidates_csv: ${data.root}/candidates_V2.csv
+  # subsets: [subset0, subset1, subset2, subset3, subset4, subset5, subset6, subset7, subset8, subset9]
+  subsets: [subset0]
+  cache_dir: ../results/luna16_cache
+
+patches:
+  patch_size_3d: 64
+  patch_size_2d: 224
+  hu_low: -1000
+  hu_high: 400
+  positive_per_scan: null
+  negative_to_positive_ratio: 0.2
+
+cv:
+  n_splits: 5
+  inner_splits: 3
+  scoring: roc_auc
+
+dl:
+  batch_size: 32
+  epochs: 50
+  lr: 0.0001
+  weight_decay: 0.0001
+  patience: 7
+  num_workers: 4
+  device: cuda
+
+paths:
+  results: ../results
+  figures: ../results/figures
