@@ -184,6 +184,7 @@ def build_patch_dataset(
     patch_size_2d: int = 224,
     hu_low: float = -1000.0,
     hu_high: float = 400.0,
+    roi_radius_vox: float = 4.0,
     apply_lung_mask: bool = False,
     verbose: bool = True,
 ) -> pd.DataFrame:
@@ -233,13 +234,11 @@ def build_patch_dataset(
             patch_3d = extract_patch_3d(volume_norm, voxel, patch_size_3d)
             slice_2d = extract_slice_2d(volume_norm, voxel, patch_size_2d)
 
+            # Fixed-radius ROI for both classes — using `diameter_mm` for positives
+            # leaks the label into the mask size (and therefore into every shape /
+            # intensity feature computed inside it).
             diameter_mm = float(row.get("diameter_mm", np.nan))
-            if not np.isfinite(diameter_mm) or diameter_mm <= 0:
-                radius_vox = max(patch_size_3d / 8.0, 4.0)
-            else:
-                radius_mm = diameter_mm / 2.0
-                radius_vox = radius_mm / float(np.mean(spacing))
-            mask = make_sphere_mask(patch_3d.shape, radius_vox).astype(np.uint8)
+            mask = make_sphere_mask(patch_3d.shape, roi_radius_vox).astype(np.uint8)
 
             patches3d.append(patch_3d.astype(np.float32))
             slices2d.append(slice_2d.astype(np.float32))

@@ -15,6 +15,7 @@ patches:
   hu_high: 400
   positive_per_scan: null
   negative_to_positive_ratio: 3.0
+  roi_radius_vox: 4.0   # fixed sphere radius for radiomics ROI — must NOT depend on diameter_mm
 
 cv:
   n_splits: 5
