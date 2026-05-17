@@ -100,6 +100,29 @@ def segment_lungs(volume_hu: np.ndarray) -> np.ndarray:
 
 # ---------------------------- patch extraction ----------------------------
 
+##################
+def is_valid_center(volume_shape: Sequence[int], center_voxel: Sequence[int], patch_size_3d: int, patch_size_2d: int) -> bool:
+    """Check if the center is valid for extracting both 3D and 2D patches."""
+    half_3d = patch_size_3d // 2
+    half_2d = patch_size_2d // 2
+    z, y, x = center_voxel
+    
+    # Check 3D bounds
+    if z - half_3d < 0 or z + half_3d >= volume_shape[0]:
+        return False
+    if y - half_3d < 0 or y + half_3d >= volume_shape[1]:
+        return False
+    if x - half_3d < 0 or x + half_3d >= volume_shape[2]:
+        return False
+    
+    # Check 2D bounds
+    if y - half_2d < 0 or y + half_2d >= volume_shape[1]:
+        return False
+    if x - half_2d < 0 or x + half_2d >= volume_shape[2]:
+        return False
+    
+    return True
+
 
 def _slice_3d(volume: np.ndarray, center: Sequence[int], size: int) -> np.ndarray:
     """Crop a cubic patch with zero-padding when the centre is near an edge."""
@@ -231,6 +254,11 @@ def build_patch_dataset(
             voxel = world_to_voxel(
                 (row["coordX"], row["coordY"], row["coordZ"]), origin, spacing
             )
+            
+            # Skip if the center is too close to edges
+            if not is_valid_center(volume_norm.shape, voxel, patch_size_3d, patch_size_2d):
+                continue
+            
             patch_3d = extract_patch_3d(volume_norm, voxel, patch_size_3d)
             slice_2d = extract_slice_2d(volume_norm, voxel, patch_size_2d)
 

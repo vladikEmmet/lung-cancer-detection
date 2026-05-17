@@ -5,7 +5,7 @@ data:
   annotations_csv: ${data.root}/annotations.csv
   candidates_csv: ${data.root}/candidates_V2.csv
   # subsets: [subset0, subset1, subset2, subset3, subset4, subset5, subset6, subset7, subset8, subset9]
-  subsets: [subset0]
+  subsets: [subset0, subset1, subset2]
   cache_dir: ../results/luna16_cache
 
 patches:

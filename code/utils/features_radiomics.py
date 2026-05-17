@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 
 def _get_extractor():
-    from radiomics import featureextractor
+    from radiomics.featureextractor import RadiomicsFeatureExtractor
 
     settings = {
         "binWidth": 25,
@@ -18,7 +18,7 @@ def _get_extractor():
         "label": 1,
         "geometryTolerance": 1e-3,
     }
-    extractor = featureextractor.RadiomicsFeatureExtractor(**settings)
+    extractor = RadiomicsFeatureExtractor(**settings)
     extractor.disableAllFeatures()
     extractor.enableFeatureClassByName("firstorder")
     extractor.enableFeatureClassByName("glcm")
